@@ -1,10 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Privacy Policy</title>
+  <meta charset="utf-8">
+  <title>Open Sesame Smart Home</title>
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Privacy Policy</h1>
-  <p>This application does not collect or store any personal data.</p>
+  <h1>Virtual Smart Home</h1>
+  <div>
+    <button onclick="showTab('ui')">Smart Home UI</button>
+    <button onclick="showTab('privacy')">Privacy Policy</button>
+  </div>
+  
+  <div id="ui" style="display:none">
+    <div id="auth"></div>
+    <div id="content" style="display:none">
+      <button onclick="showDevices()">Devices</button>
+      <button onclick="showScenes()">Scenes</button>
+      <div id="view"></div>
+    </div>
+  </div>
+
+  <div id="privacy" style="display:none">
+    <h1>Privacy Policy</h1>
+    <p>This application does not collect or store any personal data.</p>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function showTab(tabId) {
+      document.getElementById('ui').style.display = 'none';
+      document.getElementById('privacy').style.display = 'none';
+      document.getElementById(tabId).style.display = 'block';
+    }
+    // default tab
+    showTab('ui');
+  </script>
 </body>
 </html>
