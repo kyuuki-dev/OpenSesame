@@ -3,56 +3,79 @@
 <head>
   <meta charset="utf-8">
   <title>OpenSesame Smart Home</title>
+
+  <!-- Auth0 SPA SDK -->
   <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
   <h1>OpenSesame Smart Home</h1>
+
+  <!-- Navigation Tabs -->
   <div>
     <button onclick="showTab('ui')">Smart Home UI</button>
     <button onclick="showTab('privacy')">Privacy Policy</button>
   </div>
-  
+
+  <!-- MAIN UI TAB -->
   <div id="ui" style="display:none">
     <div id="auth"></div>
+
     <div id="content" style="display:none">
       <button onclick="showDevices()">Devices</button>
       <button onclick="showScenes()">Scenes</button>
       <button onclick="renderAddDeviceForm()">Add Device</button>
+
       <div id="view"></div>
     </div>
   </div>
 
+  <!-- PRIVACY TAB -->
   <div id="privacy" style="display:none">
     <h1>Privacy Policy</h1>
     <p>This application does not collect or store any personal data.</p>
   </div>
 
+  <!-- Config -->
   <script src="config.js"></script>
+
+  <!-- Application Logic -->
   <script>
     let auth0 = null;
     let token = null;
 
+    /******************************
+     *      AUTH INITIALIZATION
+     ******************************/
     async function initAuth() {
       auth0 = await createAuth0Client({
         domain: APP_CONFIG.AUTH0_DOMAIN,
         client_id: APP_CONFIG.CLIENT_ID,
-        redirect_uri: window.location.href
+        redirect_uri: window.location.origin
       });
 
-      const query = window.location.search;
-      if (query.includes("code=") && query.includes("state=")) {
+      // Handle redirect back from Auth0
+      if (window.location.search.includes("code=") &&
+          window.location.search.includes("state=")) {
         await auth0.handleRedirectCallback();
         window.history.replaceState({}, document.title, "/");
       }
 
       const isAuthenticated = await auth0.isAuthenticated();
+
       if (isAuthenticated) {
         token = await auth0.getTokenSilently();
-        document.getElementById("auth").innerHTML = '<button onclick="logout()">Logout</button>';
-        document.getElementById("content").style.display = 'block';
+
+        document.getElementById("auth").innerHTML =
+          '<button onclick="logout()">Logout</button>';
+
+        document.getElementById("content").style.display = "block";
       } else {
-        document.getElementById("auth").innerHTML = '<button onclick="login()">Login</button>';
+        document.getElementById("auth").innerHTML =
+          '<button onclick="login()">Login</button>';
       }
     }
 
@@ -61,82 +84,131 @@
     }
 
     function logout() {
-      auth0.logout({ returnTo: window.location.href });
+      auth0.logout({
+        returnTo: window.location.origin
+      });
     }
 
+    /******************************
+     *      DEVICE OPERATIONS
+     ******************************/
     async function showDevices() {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const devices = await res.json();
-      const view = document.getElementById("view");
-      view.innerHTML = '<h3>Your Devices</h3>' + devices.map(d =>
-        `<div>
-          <b>${d.friendlyName}</b> (${d.deviceType}) — ${d.state}
-          <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
-          <button onclick="controlDevice('${d.deviceId}', '${d.deviceType}')">Toggle</button>
-        </div>`
-      ).join('');
+      try {
+        const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+
+        const devices = await res.json();
+        const view = document.getElementById("view");
+
+        view.innerHTML =
+          '<h3>Your Devices</h3>' +
+          devices.map(d =>
+            `<div style="margin-bottom:10px;">
+              <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
+              <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
+              <button onclick="controlDevice('${d.deviceId}', '${d.deviceType}')">Toggle</button>
+            </div>`
+          ).join('');
+
+      } catch (err) {
+        alert("Error loading devices: " + err.message);
+      }
     }
 
     async function deleteDevice(id) {
-      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      showDevices();
+      try {
+        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        showDevices();
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
     }
 
-    async function controlDevice(id, type) {
-      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      showDevices();
+    async function controlDevice(id) {
+      try {
+        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        showDevices();
+      } catch (err) {
+        alert("Control failed: " + err.message);
+      }
     }
 
+    /******************************
+     *     ADD DEVICE FORM
+     ******************************/
     function renderAddDeviceForm() {
       const view = document.getElementById("view");
+
       view.innerHTML = `
         <h3>Add Device</h3>
         <input id="devName" placeholder="Device Name"><br>
+
         <select id="devType">
           <option value="LOCK">Lock</option>
           <option value="LIGHT">Light</option>
         </select><br>
+
         <button onclick="submitDevice()">Submit</button>
       `;
     }
 
     async function submitDevice() {
-      const body = {
-        friendlyName: document.getElementById('devName').value,
-        deviceType: document.getElementById('devType').value
-      };
-      await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
-      showDevices();
+      try {
+        const body = {
+          friendlyName: document.getElementById("devName").value,
+          deviceType: document.getElementById("devType").value
+        };
+
+        await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(body)
+        });
+
+        showDevices();
+      } catch (err) {
+        alert("Add device failed: " + err.message);
+      }
     }
 
+    /******************************
+     *       SCENES (PLACEHOLDER)
+     ******************************/
     function showScenes() {
-      const view = document.getElementById("view");
-      view.innerHTML = '<h3>Scenes: To be implemented</h3>';
+      document.getElementById("view").innerHTML =
+        `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
     }
 
+    /******************************
+     *       TAB HANDLING
+     ******************************/
     function showTab(tabId) {
-      document.getElementById('ui').style.display = 'none';
-      document.getElementById('privacy').style.display = 'none';
-      document.getElementById(tabId).style.display = 'block';
+      document.getElementById("ui").style.display = "none";
+      document.getElementById("privacy").style.display = "none";
+      document.getElementById(tabId).style.display = "block";
     }
 
-    showTab('ui');
+    /******************************
+     *     INIT DEFAULT VIEW
+     ******************************/
+    showTab("ui");
     initAuth();
+
   </script>
+
 </body>
 </html>
