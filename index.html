@@ -54,14 +54,14 @@
       auth0 = await createAuth0Client({
         domain: APP_CONFIG.AUTH0_DOMAIN,
         client_id: APP_CONFIG.CLIENT_ID,
-        redirect_uri: APP_CONFIG.REDIRECT_URI
+        authorizationParams: {
+          redirect_uri: APP_CONFIG.REDIRECT_URI
+        }
       });
 
-      // Handle redirect back from Auth0
-      if (window.location.search.includes("code=") &&
-          window.location.search.includes("state=")) {
+      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
         await auth0.handleRedirectCallback();
-        window.history.replaceState({}, document.title, "/");
+        window.history.replaceState({}, document.title, "/OpenSesame/");
       }
 
       const isAuthenticated = await auth0.isAuthenticated();
@@ -85,7 +85,9 @@
 
     function logout() {
       auth0.logout({
-        returnTo: window.location.origin
+        logoutParams: {
+          returnTo: APP_CONFIG.REDIRECT_URI
+        }
       });
     }
 
@@ -205,10 +207,10 @@
     /******************************
      *     INIT DEFAULT VIEW
      ******************************/
-    showTab("ui");
-    initAuth();
-
+    window.onload = () => {
+      showTab("ui");
+      initAuth();
+    };
   </script>
-
 </body>
 </html>
