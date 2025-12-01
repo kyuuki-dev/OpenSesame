@@ -59,8 +59,11 @@
       // Handle Auth0 redirect callback
       if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
         await auth0.handleRedirectCallback();
-        window.history.replaceState({}, document.title, window.location.pathname); // GitHub Pages safe
+        // Reload the page to trigger user session
+        window.location.href = APP_CONFIG.REDIRECT_URI;
+        return;
       }
+
 
       const isAuthenticated = await auth0.isAuthenticated();
 
