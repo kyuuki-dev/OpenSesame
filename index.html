@@ -7,20 +7,18 @@
   <!-- Auth0 SPA SDK -->
   <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
 
-  <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
   <h1>OpenSesame Smart Home</h1>
 
-  <!-- Navigation Tabs -->
   <div>
     <button onclick="showTab('ui')">Smart Home UI</button>
     <button onclick="showTab('privacy')">Privacy Policy</button>
   </div>
 
-  <!-- MAIN UI TAB -->
+  <!-- MAIN UI -->
   <div id="ui" style="display:none">
     <div id="auth"></div>
 
@@ -28,7 +26,6 @@
       <button onclick="showDevices()">Devices</button>
       <button onclick="showScenes()">Scenes</button>
       <button onclick="renderAddDeviceForm()">Add Device</button>
-
       <div id="view"></div>
     </div>
   </div>
@@ -42,11 +39,14 @@
   <!-- Config -->
   <script src="config.js"></script>
 
-  <!-- Application Logic -->
   <script>
     let auth0 = null;
     let token = null;
+    let currentUser = null;
 
+    /**************************************
+     *          AUTH INITIALIZATION
+     **************************************/
     async function initAuth() {
       auth0 = await createAuth0Client({
         domain: APP_CONFIG.AUTH0_DOMAIN,
@@ -56,22 +56,31 @@
         }
       });
 
-      // Handle Auth0 redirect callback
-      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
-        await auth0.handleRedirectCallback();
-        // Reload the page to trigger user session
-        window.location.href = APP_CONFIG.REDIRECT_URI;
-        return;
-      }
+      /********************************************
+       * HANDLE AUTH0 REDIRECT (fixes 404 + freeze)
+       ********************************************/
+      if (window.location.search.includes("code=") &&
+          window.location.search.includes("state=")) {
 
+        await auth0.handleRedirectCallback();
+
+        // Redirect to clean URL WITHOUT query params
+        window.location.href = APP_CONFIG.REDIRECT_URI;
+        return;  // Prevent continuing old logic
+      }
 
       const isAuthenticated = await auth0.isAuthenticated();
 
       if (isAuthenticated) {
         token = await auth0.getTokenSilently();
+        currentUser = await auth0.getUser();
+        console.log("Logged in user:", currentUser);
 
         document.getElementById("auth").innerHTML =
-          '<button onclick="logout()">Logout</button>';
+          `<div>
+             Logged in as: <b>${currentUser.email}</b><br>
+             <button onclick="logout()">Logout</button>
+           </div>`;
 
         document.getElementById("content").style.display = "block";
       } else {
@@ -96,7 +105,12 @@
       });
     }
 
+    /**************************************
+     *           DEVICE LIST
+     **************************************/
     async function showDevices() {
+      if (!token) return alert("Not authenticated");
+
       try {
         const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -107,51 +121,45 @@
         const devices = await res.json();
         const view = document.getElementById("view");
 
-        view.innerHTML =
-          '<h3>Your Devices</h3>' +
-          devices.map(d =>
-            `<div style="margin-bottom:10px;">
+        view.innerHTML = `
+          <h3>Your Devices</h3>
+        ` + devices.map(d => `
+            <div style="margin-bottom:10px;">
               <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
               <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
-              <button onclick="controlDevice('${d.deviceId}', '${d.deviceType}')">Toggle</button>
-            </div>`
-          ).join('');
+              <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
+            </div>
+        `).join('');
 
       } catch (err) {
         alert("Error loading devices: " + err.message);
       }
     }
 
+    /**************************************
+     *        DEVICE DELETE & CONTROL
+     **************************************/
     async function deleteDevice(id) {
-      try {
-        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        showDevices();
-      } catch (err) {
-        alert("Delete failed: " + err.message);
-      }
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showDevices();
     }
 
     async function controlDevice(id) {
-      try {
-        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        showDevices();
-      } catch (err) {
-        alert("Control failed: " + err.message);
-      }
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showDevices();
     }
 
+    /**************************************
+     *        ADD DEVICE FORM
+     **************************************/
     function renderAddDeviceForm() {
-      const view = document.getElementById("view");
-
-      view.innerHTML = `
+      document.getElementById("view").innerHTML = `
         <h3>Add Device</h3>
         <input id="devName" placeholder="Device Name"><br>
         <select id="devType">
@@ -163,7 +171,47 @@
     }
 
     async function submitDevice() {
-      try {
-        const body = {
-          friendlyName: document.getElementById("devName").value,
-          deviceType: doc
+      const body = {
+        friendlyName: document.getElementById("devName").value,
+        deviceType: document.getElementById("devType").value
+      };
+
+      await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      showDevices();
+    }
+
+    /**************************************
+     *            SCENES (placeholder)
+     **************************************/
+    function showScenes() {
+      document.getElementById("view").innerHTML =
+        `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
+    }
+
+    /**************************************
+     *             TABS
+     **************************************/
+    function showTab(tabId) {
+      document.getElementById("ui").style.display = "none";
+      document.getElementById("privacy").style.display = "none";
+      document.getElementById(tabId).style.display = "block";
+    }
+
+    /**************************************
+     *       INIT AFTER PAGE LOAD
+     **************************************/
+    window.onload = () => {
+      showTab("ui");
+      initAuth();
+    };
+  </script>
+</body>
+</html>
