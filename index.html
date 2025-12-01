@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>OpenSesame Smart Home</title>
-  <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
+  <!-- No Auth0 script any more -->
   <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -36,209 +36,67 @@
   <!-- Configuration -->
   <script>
     const APP_CONFIG = {
-      AUTH0_DOMAIN: "dev-tij17lcshqts0ymk.us.auth0.com",
-      CLIENT_ID: "RHct2tkctfaLIQo381Hd4twNvvTMLUnQ",
       API_BASE: "https://opensesamebe.onrender.com",
-      // Compute redirect_uri dynamically based on where the app is hosted
-      REDIRECT_URI: window.location.origin + window.location.pathname.replace(/index\.html$/, ""),
-      AUDIENCE: "https://opensesamebe.onrender.com"
+      // backend can use this as a fixed user key or just ignore auth entirely
+      USER_LABEL: "demo-user"
     };
   </script>
 
-  <!-- App Logic -->
+  <!-- App Logic (no Auth0) -->
   <script>
-  let auth0 = null;
-  let token = null;   // we’ll store ID token here
-
-  async function initAuth() {
-    auth0 = await createAuth0Client({
-      domain: APP_CONFIG.AUTH0_DOMAIN,
-      client_id: APP_CONFIG.CLIENT_ID,
-      authorizationParams: {
-        redirect_uri: APP_CONFIG.REDIRECT_URI
-      }
-    });
-
-    // Handle redirect back from Auth0
-    if (window.location.search.includes("code=") &&
-        window.location.search.includes("state=")) {
-      try {
-        await auth0.handleRedirectCallback();
-        window.history.replaceState({}, document.title, APP_CONFIG.REDIRECT_URI);
-      } catch (err) {
-        console.error("Error parsing redirect:", err);
-      }
-    }
-
-    updateAuthUI();
-  }
-
-  async function updateAuthUI() {
-    const isAuthenticated = await auth0.isAuthenticated();
-    const authDiv = document.getElementById("auth");
-    const contentDiv = document.getElementById("content");
-
-    if (!isAuthenticated) {
-      authDiv.innerHTML = `
-        <p>You are not logged in.</p>
-        <button onclick="login()">Log In</button>
-      `;
-      contentDiv.style.display = "none";
-      return;
-    }
-
-    const user = await auth0.getUser();
-    token = await auth0.getTokenSilently({
-      authorizationParams: {
-        audience: APP_CONFIG.AUDIENCE
-      }
-    });
-
-    authDiv.innerHTML = `
-      <p>Welcome, ${user.name || user.email}!</p>
-      <button onclick="logout()">Log Out</button>
-    `;
-    contentDiv.style.display = "block";
+  // No auth0 / token
+  async function initApp() {
+    // Simple “logged-in” banner for demo
+    document.getElementById("auth").innerHTML =
+      `<span>Demo mode – no authentication (user: ${APP_CONFIG.USER_LABEL})</span>`;
+    document.getElementById("content").style.display = "block";
     showDevices();
-  }
-
-  function login() {
-    auth0.loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: APP_CONFIG.REDIRECT_URI
-      }
-    });
-  }
-
-  function logout() {
-    auth0.logout({
-      logoutParams: {
-        returnTo: APP_CONFIG.REDIRECT_URI
-      }
-    });
   }
 
   async function showDevices() {
     try {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const res = await fetch(`${APP_CONFIG.API_BASE}/devices`);
+      if (!res.ok) throw new Error(await res.text());
+
       const devices = await res.json();
-      renderDevices(devices);
+      const view = document.getElementById("view");
+      if (!devices.length) {
+        view.innerHTML = "<h3>Your Devices</h3><p>No devices yet.</p>";
+        return;
+      }
+
+      view.innerHTML = '<h3>Your Devices</h3>' +
+        devices.map(d => `
+          <div style="margin-bottom:10px;">
+            <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
+            <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
+            <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
+          </div>
+        `).join('');
     } catch (err) {
       alert("Failed to load devices: " + err.message);
     }
   }
 
-  function renderDevices(devices) {
-    const view = document.getElementById("view");
-    if (!devices.length) {
-      view.innerHTML = "<p>No devices found.</p>";
-      return;
+  async function deleteDevice(id) {
+    try {
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
+        method: "DELETE"
+      });
+      showDevices();
+    } catch (err) {
+      alert("Delete failed: " + err.message);
     }
-
-    const rows = devices.map(d => `
-      <tr>
-        <td>${d.friendlyName}</td>
-        <td>${d.deviceType}</td>
-        <td>${d.state}</td>
-        <td>
-          <button onclick="toggleDevice('${d.deviceId}')">
-            Toggle
-          </button>
-        </td>
-      </tr>
-    `).join("");
-
-    view.innerHTML = `
-      <h3>Devices</h3>
-      <table>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>State</th>
-          <th>Action</th>
-        </tr>
-        ${rows}
-      </table>
-    `;
   }
 
-  async function toggleDevice(deviceId) {
+  async function controlDevice(id) {
     try {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/devices/${deviceId}/toggle`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        }
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
+        method: "POST"
       });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       showDevices();
     } catch (err) {
       alert("Toggle failed: " + err.message);
-    }
-  }
-
-  async function showScenes() {
-    try {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/scenes`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const scenes = await res.json();
-      renderScenes(scenes);
-    } catch (err) {
-      alert("Failed to load scenes: " + err.message);
-    }
-  }
-
-  function renderScenes(scenes) {
-    const view = document.getElementById("view");
-    if (!scenes.length) {
-      view.innerHTML = "<p>No scenes found.</p>";
-      return;
-    }
-
-    const rows = scenes.map(s => `
-      <tr>
-        <td>${s.name}</td>
-        <td>${(s.devices || []).map(d => d.friendlyName).join(", ")}</td>
-        <td>
-          <button onclick="activateScene('${s.sceneId}')">
-            Activate
-          </button>
-        </td>
-      </tr>
-    `).join("");
-
-    view.innerHTML = `
-      <h3>Scenes</h3>
-      <table>
-        <tr>
-          <th>Name</th>
-          <th>Devices</th>
-          <th>Action</th>
-        </tr>
-        ${rows}
-      </table>
-    `;
-  }
-
-  async function activateScene(sceneId) {
-    try {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/scenes/${sceneId}/activate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      alert("Scene activated");
-    } catch (err) {
-      alert("Failed to activate scene: " + err.message);
     }
   }
 
@@ -250,39 +108,35 @@
       <select id="devType">
         <option value="LOCK">Lock</option>
         <option value="LIGHT">Light</option>
-        <option value="SWITCH">Switch</option>
       </select><br>
-      <button onclick="addDevice()">Add</button>
+      <button onclick="submitDevice()">Submit</button>
     `;
   }
 
-  async function addDevice() {
-    const name = document.getElementById("devName").value;
-    const type = document.getElementById("devType").value;
-
-    if (!name) {
-      alert("Please enter a device name");
-      return;
-    }
-
+  async function submitDevice() {
     try {
-      const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+      const body = {
+        friendlyName: document.getElementById("devName").value,
+        deviceType: document.getElementById("devType").value
+      };
+
+      await fetch(`${APP_CONFIG.API_BASE}/devices`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          friendlyName: name,
-          deviceType: type
-        })
+        body: JSON.stringify(body)
       });
 
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       showDevices();
     } catch (err) {
-      alert("Failed to add device: " + err.message);
+      alert("Add device failed: " + err.message);
     }
+  }
+
+  function showScenes() {
+    document.getElementById("view").innerHTML =
+      `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
   }
 
   function showTab(tabId) {
@@ -293,7 +147,7 @@
 
   window.onload = () => {
     showTab("ui");
-    initAuth();
+    initApp();
   };
   </script>
 
