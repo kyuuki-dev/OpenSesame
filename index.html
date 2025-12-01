@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>OpenSesame Smart Home</title>
+
+  <!-- Auth0 SPA SDK -->
   <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -10,11 +12,13 @@
 <body>
   <h1>OpenSesame Smart Home</h1>
 
+  <!-- Navigation -->
   <div>
     <button onclick="showTab('ui')">Smart Home UI</button>
     <button onclick="showTab('privacy')">Privacy Policy</button>
   </div>
 
+  <!-- Tabs -->
   <div id="ui" style="display:none">
     <div id="auth"></div>
     <div id="content" style="display:none">
@@ -26,18 +30,23 @@
   </div>
 
   <div id="privacy" style="display:none">
-    <h2>Privacy Policy</h2>
+    <h1>Privacy Policy</h1>
     <p>This application does not collect or store any personal data.</p>
   </div>
 
+  <!-- Configuration -->
   <script>
     const APP_CONFIG = {
       AUTH0_DOMAIN: "dev-tij17lcshqts0ymk.us.auth0.com",
       CLIENT_ID: "RHct2tkctfaLIQo381Hd4twNvvTMLUnQ",
       API_BASE: "https://opensesamebe.onrender.com",
-      REDIRECT_URI: "https://kyuuki-dev.github.io/OpenSesame/"
+      REDIRECT_URI: "https://kyuuki-dev.github.io/OpenSesame/",
+      AUDIENCE: "https://opensesamebe.onrender.com"
     };
+  </script>
 
+  <!-- Application Logic -->
+  <script>
     let auth0 = null;
     let token = null;
 
@@ -46,16 +55,16 @@
         domain: APP_CONFIG.AUTH0_DOMAIN,
         client_id: APP_CONFIG.CLIENT_ID,
         authorizationParams: {
-          redirect_uri: APP_CONFIG.REDIRECT_URI
+          redirect_uri: APP_CONFIG.REDIRECT_URI,
+          audience: APP_CONFIG.AUDIENCE
         }
       });
 
-      // Handle redirect back
       if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
         try {
           await auth0.handleRedirectCallback();
-        } catch (e) {
-          alert("Auth callback error: " + e.message);
+        } catch (err) {
+          console.error("Auth0 redirect error:", err);
         }
         window.history.replaceState({}, document.title, "/OpenSesame/");
       }
@@ -87,12 +96,6 @@
       });
     }
 
-    function showTab(tabId) {
-      document.getElementById("ui").style.display = "none";
-      document.getElementById("privacy").style.display = "none";
-      document.getElementById(tabId).style.display = "block";
-    }
-
     async function showDevices() {
       try {
         const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
@@ -100,18 +103,16 @@
         });
 
         if (!res.ok) throw new Error(await res.text());
-
         const devices = await res.json();
         const view = document.getElementById("view");
 
-        view.innerHTML = '<h3>Your Devices</h3>' + devices.map(d => `
-          <div style="margin-bottom:10px;">
+        view.innerHTML = '<h3>Your Devices</h3>' + devices.map(d =>
+          `<div style="margin-bottom:10px;">
             <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
             <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
             <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
-          </div>
-        `).join('');
-
+          </div>`
+        ).join('');
       } catch (err) {
         alert("Error loading devices: " + err.message);
       }
@@ -177,9 +178,14 @@
     }
 
     function showScenes() {
-      document.getElementById("view").innerHTML = `
-        <h3>Scenes</h3><p>Scene creation UI coming soon.</p>
-      `;
+      document.getElementById("view").innerHTML =
+        `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
+    }
+
+    function showTab(tabId) {
+      document.getElementById("ui").style.display = "none";
+      document.getElementById("privacy").style.display = "none";
+      document.getElementById(tabId).style.display = "block";
     }
 
     window.onload = () => {
