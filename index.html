@@ -46,170 +46,172 @@
 
   <!-- App Logic -->
   <script>
-    let auth0 = null;
-    let token = null;
+  let auth0 = null;
+  let token = null;   // we’ll store ID token here
 
-    async function initAuth() {
-      auth0 = await createAuth0Client({
-        domain: APP_CONFIG.AUTH0_DOMAIN,
-        client_id: APP_CONFIG.CLIENT_ID,
-        authorizationParams: {
-          redirect_uri: APP_CONFIG.REDIRECT_URI,
-          audience: APP_CONFIG.AUDIENCE
-        }
-      });
-
-      // Handle redirect after login
-      if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
-        try {
-          await auth0.handleRedirectCallback();
-        } catch (err) {
-          console.error("Auth0 callback error", err);
-        }
-        //window.history.replaceState({}, document.title, APP_CONFIG.REDIRECT_URI);
-        window.history.replaceState({}, document.title, window.location.pathname);
-
+  async function initAuth() {
+    auth0 = await createAuth0Client({
+      domain: APP_CONFIG.AUTH0_DOMAIN,
+      client_id: APP_CONFIG.CLIENT_ID,
+      authorizationParams: {
+        redirect_uri: APP_CONFIG.REDIRECT_URI
       }
+    });
 
-      const isAuthenticated = await auth0.isAuthenticated();
+    // Handle redirect back from Auth0
+    if (window.location.search.includes("code=") &&
+        window.location.search.includes("state=")) {
+      try {
+        await auth0.handleRedirectCallback();
+      } catch (err) {
+        console.error("Auth0 callback error:", err);
+      }
+      // Clean URL, but don’t hard-code
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
-      if (isAuthenticated) {
-        try {
-          token = await auth0.getTokenSilently({
-            audience: APP_CONFIG.AUDIENCE
-          });
+    const isAuthenticated = await auth0.isAuthenticated();
 
-          // Call /init to register user in DynamoDB
-          await fetch(`${APP_CONFIG.API_BASE}/init`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
+    if (isAuthenticated) {
+      try {
+        // Get ID token (contains sub/email/name)
+        const claims = await auth0.getIdTokenClaims();
+        token = claims.__raw;   // raw JWT
 
-          document.getElementById("auth").innerHTML =
-            '<button onclick="logout()">Logout</button>';
-          document.getElementById("content").style.display = "block";
+        // Call /init so backend writes user profile into DynamoDB
+        await fetch(`${APP_CONFIG.API_BASE}/init`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-        } catch (err) {
-          console.error("Error during silent auth or /init", err);
-          document.getElementById("auth").innerHTML =
-            '<button onclick="login()">Login</button>';
-        }
-      } else {
+        document.getElementById("auth").innerHTML =
+          '<button onclick="logout()">Logout</button>';
+        document.getElementById("content").style.display = "block";
+
+      } catch (err) {
+        console.error("Error after auth:", err);
         document.getElementById("auth").innerHTML =
           '<button onclick="login()">Login</button>';
       }
+    } else {
+      document.getElementById("auth").innerHTML =
+        '<button onclick="login()">Login</button>';
     }
+  }
 
-    function login() {
-      auth0.loginWithRedirect();
-    }
+  function login() {
+    auth0.loginWithRedirect({
+      authorizationParams: {
+        redirect_uri: APP_CONFIG.REDIRECT_URI
+      }
+    });
+  }
 
-    function logout() {
-      auth0.logout({
-        logoutParams: {
-          returnTo: APP_CONFIG.REDIRECT_URI
-        }
+  function logout() {
+    auth0.logout({
+      logoutParams: {
+        returnTo: APP_CONFIG.REDIRECT_URI
+      }
+    });
+  }
+
+  async function showDevices() {
+    try {
+      const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-    }
+      if (!res.ok) throw new Error(await res.text());
 
-    async function showDevices() {
-      try {
-        const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error(await res.text());
-
-        const devices = await res.json();
-        const view = document.getElementById("view");
-        view.innerHTML = '<h3>Your Devices</h3>' +
-          devices.map(d => `
-            <div style="margin-bottom:10px;">
-              <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
-              <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
-              <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
-            </div>
-          `).join('');
-      } catch (err) {
-        alert("Failed to load devices: " + err.message);
-      }
-    }
-
-    async function deleteDevice(id) {
-      try {
-        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        showDevices();
-      } catch (err) {
-        alert("Delete failed: " + err.message);
-      }
-    }
-
-    async function controlDevice(id) {
-      try {
-        await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        showDevices();
-      } catch (err) {
-        alert("Toggle failed: " + err.message);
-      }
-    }
-
-    function renderAddDeviceForm() {
+      const devices = await res.json();
       const view = document.getElementById("view");
-      view.innerHTML = `
-        <h3>Add Device</h3>
-        <input id="devName" placeholder="Device Name"><br>
-        <select id="devType">
-          <option value="LOCK">Lock</option>
-          <option value="LIGHT">Light</option>
-        </select><br>
-        <button onclick="submitDevice()">Submit</button>
-      `;
+      view.innerHTML = '<h3>Your Devices</h3>' +
+        devices.map(d => `
+          <div style="margin-bottom:10px;">
+            <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
+            <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
+            <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
+          </div>
+        `).join('');
+    } catch (err) {
+      alert("Failed to load devices: " + err.message);
     }
+  }
 
-    async function submitDevice() {
-      try {
-        const body = {
-          friendlyName: document.getElementById("devName").value,
-          deviceType: document.getElementById("devType").value
-        };
-
-        await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(body)
-        });
-
-        showDevices();
-      } catch (err) {
-        alert("Add device failed: " + err.message);
-      }
+  async function deleteDevice(id) {
+    try {
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showDevices();
+    } catch (err) {
+      alert("Delete failed: " + err.message);
     }
+  }
 
-    function showScenes() {
-      document.getElementById("view").innerHTML =
-        `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
+  async function controlDevice(id) {
+    try {
+      await fetch(`${APP_CONFIG.API_BASE}/devices/${id}/control`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showDevices();
+    } catch (err) {
+      alert("Toggle failed: " + err.message);
     }
+  }
 
-    function showTab(tabId) {
-      document.getElementById("ui").style.display = "none";
-      document.getElementById("privacy").style.display = "none";
-      document.getElementById(tabId).style.display = "block";
+  function renderAddDeviceForm() {
+    const view = document.getElementById("view");
+    view.innerHTML = `
+      <h3>Add Device</h3>
+      <input id="devName" placeholder="Device Name"><br>
+      <select id="devType">
+        <option value="LOCK">Lock</option>
+        <option value="LIGHT">Light</option>
+      </select><br>
+      <button onclick="submitDevice()">Submit</button>
+    `;
+  }
+
+  async function submitDevice() {
+    try {
+      const body = {
+        friendlyName: document.getElementById("devName").value,
+        deviceType: document.getElementById("devType").value
+      };
+
+      await fetch(`${APP_CONFIG.API_BASE}/devices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      showDevices();
+    } catch (err) {
+      alert("Add device failed: " + err.message);
     }
+  }
 
-    window.onload = () => {
-      showTab("ui");
-      initAuth();
-    };
-  </script>
+  function showScenes() {
+    document.getElementById("view").innerHTML =
+      `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
+  }
+
+  function showTab(tabId) {
+    document.getElementById("ui").style.display = "none";
+    document.getElementById("privacy").style.display = "none";
+    document.getElementById(tabId).style.display = "block";
+  }
+
+  window.onload = () => {
+    showTab("ui");
+    initAuth();
+  };
+</script>
+
 </body>
 </html>
