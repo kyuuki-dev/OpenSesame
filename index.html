@@ -54,7 +54,7 @@
       auth0 = await createAuth0Client({
         domain: APP_CONFIG.AUTH0_DOMAIN,
         client_id: APP_CONFIG.CLIENT_ID,
-        redirect_uri: window.location.origin
+        redirect_uri: APP_CONFIG.REDIRECT_URI
       });
 
       // Handle redirect back from Auth0
