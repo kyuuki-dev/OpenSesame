@@ -3,8 +3,6 @@
 <head>
   <meta charset="utf-8">
   <title>OpenSesame Smart Home</title>
-
-  <!-- Auth0 SPA SDK -->
   <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,13 +10,13 @@
 <body>
   <h1>OpenSesame Smart Home</h1>
 
-  <!-- Navigation -->
+  <!-- Navigation Tabs -->
   <div>
     <button onclick="showTab('ui')">Smart Home UI</button>
     <button onclick="showTab('privacy')">Privacy Policy</button>
   </div>
 
-  <!-- Tabs -->
+  <!-- UI Tab -->
   <div id="ui" style="display:none">
     <div id="auth"></div>
     <div id="content" style="display:none">
@@ -29,9 +27,10 @@
     </div>
   </div>
 
+  <!-- Privacy Policy -->
   <div id="privacy" style="display:none">
-    <h1>Privacy Policy</h1>
-    <p>This application does not collect or store any personal data.</p>
+    <h2>Privacy Policy</h2>
+    <p>This application does not collect or store any personal data beyond what is needed for functionality.</p>
   </div>
 
   <!-- Configuration -->
@@ -45,7 +44,7 @@
     };
   </script>
 
-  <!-- Application Logic -->
+  <!-- App Logic -->
   <script>
     let auth0 = null;
     let token = null;
@@ -60,33 +59,41 @@
         }
       });
 
+      // Handle redirect after login
       if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
         try {
           await auth0.handleRedirectCallback();
         } catch (err) {
-          console.error("Auth0 redirect error:", err);
+          console.error("Auth0 callback error", err);
         }
-        window.history.replaceState({}, document.title, "/OpenSesame/");
+        window.history.replaceState({}, document.title, APP_CONFIG.REDIRECT_URI);
       }
 
       const isAuthenticated = await auth0.isAuthenticated();
 
       if (isAuthenticated) {
-        token = await auth0.getTokenSilently();
+        try {
+          token = await auth0.getTokenSilently({
+            audience: APP_CONFIG.AUDIENCE
+          });
 
-        await fetch(`${APP_CONFIG.API_BASE}/init`, 
-        {
-        method: "POST",
-        headers: 
-          {
-            Authorization: `Bearer ${token}`
-          }
-        });
+          // Call /init to register user in DynamoDB
+          await fetch(`${APP_CONFIG.API_BASE}/init`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
 
-        document.getElementById("auth").innerHTML =
-          '<button onclick="logout()">Logout</button>';
+          document.getElementById("auth").innerHTML =
+            '<button onclick="logout()">Logout</button>';
+          document.getElementById("content").style.display = "block";
 
-        document.getElementById("content").style.display = "block";
+        } catch (err) {
+          console.error("Error during silent auth or /init", err);
+          document.getElementById("auth").innerHTML =
+            '<button onclick="login()">Login</button>';
+        }
       } else {
         document.getElementById("auth").innerHTML =
           '<button onclick="login()">Login</button>';
@@ -110,20 +117,20 @@
         const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-
         if (!res.ok) throw new Error(await res.text());
+
         const devices = await res.json();
         const view = document.getElementById("view");
-
-        view.innerHTML = '<h3>Your Devices</h3>' + devices.map(d =>
-          `<div style="margin-bottom:10px;">
-            <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
-            <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
-            <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
-          </div>`
-        ).join('');
+        view.innerHTML = '<h3>Your Devices</h3>' +
+          devices.map(d => `
+            <div style="margin-bottom:10px;">
+              <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
+              <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
+              <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
+            </div>
+          `).join('');
       } catch (err) {
-        alert("Error loading devices: " + err.message);
+        alert("Failed to load devices: " + err.message);
       }
     }
 
@@ -147,7 +154,7 @@
         });
         showDevices();
       } catch (err) {
-        alert("Control failed: " + err.message);
+        alert("Toggle failed: " + err.message);
       }
     }
 
