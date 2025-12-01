@@ -47,9 +47,6 @@
     let auth0 = null;
     let token = null;
 
-    /******************************
-     *      AUTH INITIALIZATION
-     ******************************/
     async function initAuth() {
       auth0 = await createAuth0Client({
         domain: APP_CONFIG.AUTH0_DOMAIN,
@@ -59,9 +56,10 @@
         }
       });
 
+      // Handle Auth0 redirect callback
       if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
         await auth0.handleRedirectCallback();
-        window.history.replaceState({}, document.title, "/OpenSesame/");
+        window.history.replaceState({}, document.title, window.location.pathname); // GitHub Pages safe
       }
 
       const isAuthenticated = await auth0.isAuthenticated();
@@ -80,7 +78,11 @@
     }
 
     function login() {
-      auth0.loginWithRedirect();
+      auth0.loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: APP_CONFIG.REDIRECT_URI
+        }
+      });
     }
 
     function logout() {
@@ -91,9 +93,6 @@
       });
     }
 
-    /******************************
-     *      DEVICE OPERATIONS
-     ******************************/
     async function showDevices() {
       try {
         const res = await fetch(`${APP_CONFIG.API_BASE}/devices`, {
@@ -146,21 +145,16 @@
       }
     }
 
-    /******************************
-     *     ADD DEVICE FORM
-     ******************************/
     function renderAddDeviceForm() {
       const view = document.getElementById("view");
 
       view.innerHTML = `
         <h3>Add Device</h3>
         <input id="devName" placeholder="Device Name"><br>
-
         <select id="devType">
           <option value="LOCK">Lock</option>
           <option value="LIGHT">Light</option>
         </select><br>
-
         <button onclick="submitDevice()">Submit</button>
       `;
     }
@@ -169,48 +163,4 @@
       try {
         const body = {
           friendlyName: document.getElementById("devName").value,
-          deviceType: document.getElementById("devType").value
-        };
-
-        await fetch(`${APP_CONFIG.API_BASE}/devices`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(body)
-        });
-
-        showDevices();
-      } catch (err) {
-        alert("Add device failed: " + err.message);
-      }
-    }
-
-    /******************************
-     *       SCENES (PLACEHOLDER)
-     ******************************/
-    function showScenes() {
-      document.getElementById("view").innerHTML =
-        `<h3>Scenes</h3><p>Scene creation UI coming soon.</p>`;
-    }
-
-    /******************************
-     *       TAB HANDLING
-     ******************************/
-    function showTab(tabId) {
-      document.getElementById("ui").style.display = "none";
-      document.getElementById("privacy").style.display = "none";
-      document.getElementById(tabId).style.display = "block";
-    }
-
-    /******************************
-     *     INIT DEFAULT VIEW
-     ******************************/
-    window.onload = () => {
-      showTab("ui");
-      initAuth();
-    };
-  </script>
-</body>
-</html>
+          deviceType: doc
