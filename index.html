@@ -1,45 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>OpenSesame Smart Home</title>
-  <!-- No Auth0 script any more -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSesame — Smart Home, Simplified</title>
+  <meta name="description" content="OpenSesame is a lightweight smart home platform for controlling your locks, lights, and scenes from one place.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%91%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-  <h1>OpenSesame Smart Home</h1>
-
-  <!-- Navigation Tabs -->
-  <div>
-    <button onclick="showTab('ui')">Smart Home UI</button>
-    <button onclick="showTab('privacy')">Privacy Policy</button>
-  </div>
-
-  <!-- UI Tab -->
-  <div id="ui" style="display:none">
-    <div id="auth"></div>
-    <div id="content" style="display:none">
-      <button onclick="showDevices()">Devices</button>
-      <button onclick="showScenes()">Scenes</button>
-      <button onclick="renderAddDeviceForm()">Add Device</button>
-      <div id="view"></div>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-icon" aria-hidden="true">🔑</span>
+      <span class="brand-name">OpenSesame</span>
     </div>
+    <nav class="tabs" aria-label="Primary">
+      <button class="tab-btn" id="tab-btn-ui" onclick="showTab('ui')">Smart Home</button>
+      <button class="tab-btn" id="tab-btn-privacy" onclick="showTab('privacy')">Privacy Policy</button>
+    </nav>
+  </header>
+
+  <!-- Smart Home Tab -->
+  <div id="ui" style="display:none">
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="eyebrow">Smart Home Control</span>
+        <h1>One dashboard for every lock, light, and scene.</h1>
+        <p class="hero-sub">OpenSesame gives you a single, simple place to manage your connected home — no clutter, no unnecessary data collection.</p>
+      </div>
+    </section>
+
+    <main class="container">
+      <section class="features">
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🔒</span>
+          <h3>Secure Locks</h3>
+          <p>Lock and unlock smart locks remotely with a single tap.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">💡</span>
+          <h3>Smart Lighting</h3>
+          <p>Turn lights on and off and keep track of their state in real time.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon" aria-hidden="true">🎬</span>
+          <h3>Scenes</h3>
+          <p>Group devices into scenes for one-tap routines. (Coming soon.)</p>
+        </div>
+      </section>
+
+      <section class="panel dashboard">
+        <div id="auth" class="status-banner"></div>
+        <div id="content" style="display:none">
+          <div class="action-bar">
+            <button class="btn" onclick="showDevices()">Devices</button>
+            <button class="btn" onclick="showScenes()">Scenes</button>
+            <button class="btn btn-primary" onclick="renderAddDeviceForm()">Add Device</button>
+          </div>
+          <div id="view"></div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <!-- Privacy Policy -->
+  <!-- Privacy Policy Tab -->
   <div id="privacy" style="display:none">
-    <h2>Privacy Policy</h2>
-    <p><strong>User data is not collected.</strong> OpenSesame Smart Home does not collect, store, share, or sell any personal data, account information, or device usage data.</p>
-    <ul>
-      <li>No personal information (name, email, address, etc.) is requested or stored.</li>
-      <li>No authentication or account data is retained — this demo runs without login.</li>
-      <li>No analytics, tracking, or advertising services are used.</li>
-      <li>No data is shared with third parties.</li>
-      <li>Any device information entered is used only to demonstrate app functionality and is not retained beyond what is needed for that functionality.</li>
-    </ul>
-    <p>This application, and the Alexa skill associated with it, is for testing and demonstration purposes only.</p>
+    <section class="hero hero-compact">
+      <div class="hero-inner">
+        <span class="eyebrow">Legal</span>
+        <h1>Privacy Policy</h1>
+        <p class="hero-sub">Last updated: August 25, 2026</p>
+      </div>
+    </section>
+
+    <main class="container">
+      <section class="panel policy">
+        <p class="policy-lede"><strong>The short version: OpenSesame does not collect user data.</strong> No accounts, no tracking, no analytics, and no personal information are stored by this application or its companion Alexa skill.</p>
+
+        <nav class="policy-toc" aria-label="Table of contents">
+          <span class="policy-toc-label">On this page</span>
+          <a href="#overview">Overview</a>
+          <a href="#info-collected">Information We Collect</a>
+          <a href="#device-data">Device Data</a>
+          <a href="#third-parties">Third-Party Services</a>
+          <a href="#retention">Data Retention</a>
+          <a href="#alexa">Alexa Skill Permissions</a>
+          <a href="#security">Security</a>
+          <a href="#children">Children's Privacy</a>
+          <a href="#changes">Changes to This Policy</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <h2 id="overview">Overview</h2>
+        <p>OpenSesame ("the app", "we", "our") is a demonstration smart home platform, delivered as a web dashboard and a companion Alexa skill. This policy explains what information the app does and does not handle when you use it.</p>
+
+        <h2 id="info-collected">Information We Collect</h2>
+        <p>OpenSesame does not require an account and does not collect, store, or process any personal information, including but not limited to:</p>
+        <ul>
+          <li>Names, email addresses, or phone numbers</li>
+          <li>Passwords or authentication credentials</li>
+          <li>Location data</li>
+          <li>Voice recordings or transcripts</li>
+          <li>Cookies, analytics identifiers, or advertising identifiers</li>
+        </ul>
+        <p>The app runs in a "demo mode" — every visitor uses the same shared, non-identifying session label, and no sign-in step exists to tie activity to an individual.</p>
+
+        <h2 id="device-data">Device Data</h2>
+        <p>When you add a device (e.g., a lock or a light) through the dashboard, its name and type are sent to the OpenSesame backend so it can be displayed and controlled. This data:</p>
+        <ul>
+          <li>Is used solely to render and operate the demo dashboard</li>
+          <li>Is not linked to any personal identity</li>
+          <li>Is not sold, rented, or shared with advertisers</li>
+          <li>Can be removed at any time using the Delete action in the dashboard</li>
+        </ul>
+
+        <h2 id="third-parties">Third-Party Services</h2>
+        <p>OpenSesame does not use analytics, advertising, or tracking services. The app is hosted as a static site and communicates only with its own backend API to read and control demo devices. No data is shared with third parties for marketing or profiling purposes.</p>
+
+        <h2 id="retention">Data Retention</h2>
+        <p>Because no personal data is collected, there is no personal data retention period. Demo device entries persist only until they are deleted by a user or reset as part of routine maintenance of the demo environment.</p>
+
+        <h2 id="alexa">Alexa Skill Permissions</h2>
+        <p>The OpenSesame Alexa skill is for testing and demonstration purposes only. It does not request access to your Amazon account profile, does not store voice transcripts beyond what Amazon requires to process a spoken request, and does not share skill usage data with third parties.</p>
+
+        <h2 id="security">Security</h2>
+        <p>All communication between the dashboard and the backend API uses HTTPS. Since the app does not collect personal data, there is no sensitive personal data at risk in the event of a service issue; demo device data is treated as non-sensitive, disposable test content.</p>
+
+        <h2 id="children">Children's Privacy</h2>
+        <p>OpenSesame is a technical demonstration and is not directed at children. It does not knowingly collect information from anyone, including children under 13.</p>
+
+        <h2 id="changes">Changes to This Policy</h2>
+        <p>This policy may be updated as the demo evolves. Changes will be reflected on this page with an updated "Last updated" date above.</p>
+
+        <h2 id="contact">Contact</h2>
+        <p>Questions about this policy can be raised via an issue on the <a href="https://github.com/kyuuki-dev/OpenSesame" target="_blank" rel="noopener">OpenSesame GitHub repository</a>.</p>
+      </section>
+    </main>
   </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="built-with">
+        <span class="built-with-label">Built with</span>
+        <div class="tech-logos">
+          <span class="tech-chip">Amazon Alexa Skills Kit</span>
+          <span class="tech-chip">Auth0</span>
+          <span class="tech-chip">Render</span>
+        </div>
+      </div>
+      <p class="copyright">© 2026 OpenSesame. Demo project — not for production use.</p>
+    </div>
+  </footer>
 
   <!-- Configuration -->
   <script>
@@ -73,14 +185,17 @@
         return;
       }
 
-      view.innerHTML = '<h3>Your Devices</h3>' +
+      view.innerHTML = '<h3>Your Devices</h3><div class="device-grid">' +
         devices.map(d => `
-          <div style="margin-bottom:10px;">
-            <b>${d.friendlyName}</b> (${d.deviceType}) — <i>${d.state}</i>
-            <button onclick="deleteDevice('${d.deviceId}')">Delete</button>
-            <button onclick="controlDevice('${d.deviceId}')">Toggle</button>
+          <div class="device-card">
+            <div class="device-card-title"><b>${d.friendlyName}</b> <span class="device-type">${d.deviceType}</span></div>
+            <div class="device-state">${d.state}</div>
+            <div class="device-actions">
+              <button class="btn" onclick="controlDevice('${d.deviceId}')">Toggle</button>
+              <button class="btn btn-danger" onclick="deleteDevice('${d.deviceId}')">Delete</button>
+            </div>
           </div>
-        `).join('');
+        `).join('') + '</div>';
     } catch (err) {
       alert("Failed to load devices: " + err.message);
     }
@@ -112,12 +227,14 @@
     const view = document.getElementById("view");
     view.innerHTML = `
       <h3>Add Device</h3>
-      <input id="devName" placeholder="Device Name"><br>
-      <select id="devType">
-        <option value="LOCK">Lock</option>
-        <option value="LIGHT">Light</option>
-      </select><br>
-      <button onclick="submitDevice()">Submit</button>
+      <div class="form-row">
+        <input id="devName" placeholder="Device Name">
+        <select id="devType">
+          <option value="LOCK">Lock</option>
+          <option value="LIGHT">Light</option>
+        </select>
+        <button class="btn btn-primary" onclick="submitDevice()">Submit</button>
+      </div>
     `;
   }
 
@@ -151,6 +268,8 @@
     document.getElementById("ui").style.display = "none";
     document.getElementById("privacy").style.display = "none";
     document.getElementById(tabId).style.display = "block";
+    document.getElementById("tab-btn-ui").classList.toggle("active", tabId === "ui");
+    document.getElementById("tab-btn-privacy").classList.toggle("active", tabId === "privacy");
   }
 
   window.onload = () => {
