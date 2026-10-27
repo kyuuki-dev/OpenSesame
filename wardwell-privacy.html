@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Wardwell Home Privacy Policy</title>
+  <meta name="description" content="How Wardwell Home handles account, device, scene, and Alexa request data.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">🔒</span><span class="brand-name">Wardwell Home</span></div>
+    <nav class="tabs" aria-label="Site"><a href="index.html">OpenSesame site</a></nav>
+  </header>
+  <section class="hero hero-compact">
+    <div class="hero-inner">
+      <span class="eyebrow">Wardwell Home</span>
+      <h1>Privacy Policy</h1>
+      <p class="hero-sub">Last updated: October 26, 2026</p>
+    </div>
+  </section>
+  <main class="container">
+    <section class="panel policy">
+      <p class="policy-lede">This policy applies to the <strong>Wardwell Home</strong> Alexa smart-home skill and the connected IoT platform operated by the skill's developer. It does not describe the separate OpenSesame public demo dashboard.</p>
+
+      <h2>Information we handle</h2>
+      <p>Wardwell Home uses account linking. When you sign in, Auth0 processes the account information and credentials you provide to it. The skill's backend receives an access token from Alexa, checks it with Auth0, and uses the resulting account identifier to find your linked platform account. The platform stores the link between that Auth0 identifier and its own user identifier.</p>
+      <p>The platform stores the rooms, device names and types, device states, scenes and their target settings that you create or connect. It also stores command records, including the action, target, request identifier, and time. When you use Alexa, the skill receives the device or scene directive and endpoint identifier needed to carry out your request. The skill does not receive your raw voice recording from Amazon.</p>
+
+      <h2>How we use the information</h2>
+      <p>We use this information to link your account, show your available devices and scenes to Alexa, carry out lock and scene commands, maintain device state, and diagnose errors. We do not use this information for advertising or sell it.</p>
+
+      <h2>Services that process data</h2>
+      <p>Amazon provides Alexa and sends smart-home requests to the skill. Auth0 handles account sign-in. Supabase hosts the platform's account mapping, device, scene, and command records. AWS Lambda runs the skill backend, and AWS CloudWatch stores technical logs used for troubleshooting. These services process information only as needed for their roles in operating Wardwell Home.</p>
+
+      <h2>Retention and deletion</h2>
+      <p>Device and scene records remain until you delete them in the platform or request their removal. Account mapping and command records remain until the linked account is removed or a deletion request is fulfilled; no automatic command-history expiry is currently configured. Technical logs and service backups may remain for their configured retention periods. You can request access, correction, or deletion using the contact method below. Please do not put account credentials or other private information in a public GitHub issue.</p>
+
+      <h2>Security</h2>
+      <p>Communication with the skill backend and platform uses HTTPS. The platform restricts access to account and household records, and backend credentials are not exposed in the browser. No internet service can guarantee absolute security.</p>
+
+      <h2>Children</h2>
+      <p>Wardwell Home is not directed to children under 13. If you believe a child has provided personal information through a linked account, contact us so we can review and remove it.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>We may update this policy when the skill or its data practices change. The date at the top shows the latest revision.</p>
+
+      <h2>Contact</h2>
+      <p>For privacy questions or data requests, contact <strong>CONTACT_EMAIL_TO_CONFIRM</strong>.</p>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="container footer-inner"><p>Wardwell Home · Privacy Policy</p></div></footer>
+</body>
+</html>
